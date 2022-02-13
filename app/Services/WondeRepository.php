@@ -7,6 +7,7 @@ use App\Exceptions\EmployeeNotSetException;
 use App\Exceptions\SchoolNotFoundException;
 use App\Exceptions\SchoolNotSetException;
 use App\Services\Helpers\ObjectToArray;
+use GuzzleHttp\Exception\ClientException;
 use Wonde\Client;
 use Wonde\Endpoints\Schools;
 
@@ -15,6 +16,7 @@ class WondeRepository
     private ?Schools $school;
     private ?object $employee;
     private array $classes = [];
+    private ?string $schoolId;
 
     public function __construct(
         private Client $client,
@@ -22,33 +24,45 @@ class WondeRepository
     ) {
     }
 
-    public function setSchool($schoolId): static
+    public function setSchool(string $schoolId): static
     {
-        $this->school = $this->client->school($schoolId);
+        try {
+            $this->schoolId = $schoolId;
+            $this->school = $this->client->school($schoolId);
 
-        $this->employee = null;
-        $this->classes = [];
-
-        throw_if(!$this->school, SchoolNotFoundException::class);
+            $this->employee = null;
+            $this->classes = [];
+        } catch (\Exception $exception) {
+            throw new SchoolNotFoundException($schoolId . ' not found');
+        }
 
         return $this;
     }
 
-    public function setEmployee($employeeId): static
+    public function setEmployee(string $employeeId): static
     {
         throw_if(!$this->school, SchoolNotSetException::class);
 
-        foreach ($this->school->employees->all(['classes'], ['has_class' => true]) as $current) {
-            if ($current->id === $employeeId) {
-                $this->employee = $current;
+        try {
+            foreach ($this->school->employees->all(['classes'], ['has_class' => true]) as $current) {
+                if ($current->id === $employeeId) {
+                    $this->employee = $current;
 
-                break;
+                    break;
+                }
             }
+
+            $this->classes = [];
+        } catch (ClientException $exception) {
+            throw new EmployeeNotFoundException(sprintf('Employee %s not found for school %s', $employeeId, $this->schoolId));
         }
 
-        $this->classes = [];
-
-        throw_if(!$this->employee, EmployeeNotFoundException::class);
+        throw_if(
+            !$this->employee,
+            new EmployeeNotFoundException(
+                sprintf('Employee %s not found for school %s', $employeeId, $this->schoolId)
+            )
+        );
 
         return $this;
     }
@@ -58,14 +72,23 @@ class WondeRepository
         throw_if(!$this->school, SchoolNotSetException::class);
         throw_if(!$this->employee, EmployeeNotSetException::class);
 
-        $classes = [];
-        foreach ($this->employee->classes->data as $class) {
-            foreach ($this->school->classes->all(['students'], ['class_name' => $class->name]) as $current) {
-                $classes[] = $current;
+        try {
+            $classes = [];
+            foreach ($this->employee->classes->data as $class) {
+                foreach ($this->school->classes->all(['students'], ['class_name' => $class->name]) as $current) {
+                    $classes[] = $current;
+                }
             }
+
+            $this->classes = $classes;
+        } catch (ClientException $exception) {
+            throw new EmployeeNotSetException('A valid employee needs to be set before getting classes');
         }
 
-        $this->classes = $classes;
+        throw_if(
+            !$this->employee,
+            new EmployeeNotSetException('A valid employee needs to be set before getting classes')
+        );
 
         return $this;
     }
