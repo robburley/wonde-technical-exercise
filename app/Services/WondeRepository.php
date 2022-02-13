@@ -13,9 +13,9 @@ use Wonde\Endpoints\Schools;
 
 class WondeRepository
 {
-    private ?Schools $school;
-    private ?object $employee;
     private array $classes = [];
+    private ?object $employee;
+    private ?Schools $school;
     private ?string $schoolId;
 
     public function __construct(
