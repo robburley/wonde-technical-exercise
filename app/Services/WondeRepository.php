@@ -75,7 +75,10 @@ class WondeRepository
         try {
             $classes = [];
             foreach ($this->employee->classes->data as $class) {
-                foreach ($this->school->classes->all(['students'], ['class_name' => $class->name]) as $current) {
+                $search = $this->school->classes
+                    ->all(['students'], ['has_lessons' => true, 'class_name' => $class->name]);
+
+                foreach ($search as $current) {
                     $classes[] = $current;
                 }
             }
