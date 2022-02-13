@@ -39,14 +39,17 @@ class WondeRepository
         return $this;
     }
 
+    /*
+     * I couldn't see a parameter to pass to the endpoint to filter the data.
+     */
     public function setEmployee(string $employeeId): static
     {
         throw_if(!$this->school, SchoolNotSetException::class);
 
         try {
-            foreach ($this->school->employees->all(['classes'], ['has_class' => true]) as $current) {
-                if ($current->id === $employeeId) {
-                    $this->employee = $current;
+            foreach ($this->school->employees->all(['classes'], ['has_class' => true]) as $searchedEmployee) {
+                if ($searchedEmployee->id === $employeeId) {
+                    $this->employee = $searchedEmployee;
 
                     break;
                 }
@@ -75,11 +78,11 @@ class WondeRepository
         try {
             $classes = [];
             foreach ($this->employee->classes->data as $class) {
-                $search = $this->school->classes
+                $searchedClasses = $this->school->classes
                     ->all(['students'], ['has_lessons' => true, 'class_name' => $class->name]);
 
-                foreach ($search as $current) {
-                    $classes[] = $current;
+                foreach ($searchedClasses as $searchedClass) {
+                    $classes[] = $searchedClass;
                 }
             }
 
