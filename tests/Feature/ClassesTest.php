@@ -25,7 +25,7 @@ class ClassesTest extends TestCase
      */
     public function it404ErrorsWhenSchoolDoesNotExist(): void
     {
-        $response = $this->get('/api/school/asd/employee/A921160679/classes');
+        $response = $this->get('/api/school/NOTFOUND/employee/A921160679/classes');
 
         $response->assertStatus(404);
     }
@@ -36,7 +36,7 @@ class ClassesTest extends TestCase
      */
     public function it404ErrorsWhenEmployeeDoesNotExist(): void
     {
-        $response = $this->get('/api/school/A1930499544/employee/asd/classes');
+        $response = $this->get('/api/school/A1930499544/employee/NOTFOUND/classes');
 
         $response->assertStatus(404);
     }
